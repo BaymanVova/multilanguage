@@ -8,35 +8,69 @@
  * @format
  */
 
-import React, {Component} from 'react';
-import {View, StyleSheet, ViewStyle, Text, TextStyle} from 'react-native';
-
+import React, {PureComponent} from 'react';
+import {View, StyleSheet, ViewStyle, Text, TextStyle, ActivityIndicator} from 'react-native';
+import DefaultPreference from "react-native-default-preference";
 import {Button} from "./src/common/components/Button";
 import {Colors} from "./src/common/core/colors";
 import {localization} from "./src/common/localization/localization";
 
-class App extends Component {
+interface State {
+    currentLanguage: string;
+}
+
+class App extends PureComponent<State>  {
+    state = {
+        currentLanguage: ""
+    };
+
+    componentDidMount(): void {
+        DefaultPreference.get("language").then((value: string) => {
+            if (value) {
+                localization.common.setLanguage(value);
+                this.setState({ currentLanguage: value });
+            } else {
+                this.setState({ currentLanguage: localization.common.getLanguage() });
+            }
+        });
+    }
+
+    private setLanguage = (language: string) => {
+        localization.common.setLanguage(language);
+        DefaultPreference.set("language", language);
+        this.setState({ currentLanguage: language });
+    }
+
+
     render(): JSX.Element {
+        const { currentLanguage } = this.state;
+
+        if (!currentLanguage)
+            return (
+                <View style={styles.container}>
+                    <ActivityIndicator size="large" color={"blue"} />
+                </View>
+            );
+
         return (
             <View style={styles.container}>
                 <View style={styles.buttons}>
-                    <Button title={localization.common.en} active onLanguageChange={this.setLanguage}/>
-                    <Button title={localization.common.ru} onLanguageChange={this.setLanguage}/>
-                    <Button title={localization.common.hi} onLanguageChange={this.setLanguage}/>
+                    {localization.common.getAvailableLanguages().map((el: string) => (
+                        <Button
+                            title={el}
+                            key={el}
+                            active={currentLanguage === el}
+                            onLanguageChange={this.setLanguage}
+                        />
+                    ))}
                 </View>
                 <View>
                     <Text style={styles.text}>
                         {localization.common.phrase}
-                        {localization.common.getLanguage()}
                     </Text>
                 </View>
             </View>
         );
-    }
-
-    private setLanguage = (language: string):void => {
-        localization.common.setLanguage(language);
-        this.setState({});
     }
 }
 
